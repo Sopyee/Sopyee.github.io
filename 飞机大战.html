@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<link rel="stylesheet" href="css/common.css">
+		<script src="./js/config.js"></script>
+		<script src="./js/plane.js"></script>
+		<script src="./js/hero.js"></script>
+		<script src="./js/fire.js"></script>
+		<script src="./js/utils.js"></script>
+		<style>
+			#info {
+				display: flex;
+				background-color: transparent;
+				justify-content: space-between;
+				font-size: 30px;
+				color: white;
+			}
+
+			#begin {
+				position: absolute;
+				transform: translate(-50%, -50%);
+				left: 50%;
+				top: 50%;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container">
+			<div id="info">
+				<span id="score_show">得分：</span>
+				<img src="./img/start.png" id="begin">
+			</div>
+		</div>
+		<audio src="./img/game_run.mp3" id="musicRun"></audio>
+		<audio src="./img/fire.mp3" id="musicFire"></audio>
+		<script>
+			const box = document.getElementById("container")
+			const score_show = document.getElementById("score_show")
+			const begin = document.getElementById("begin")
+			const musicRun = document.getElementById("musicRun")
+			const musicFire = document.getElementById("musicFire")
+			let hero = null
+			// 程序执行：
+			function gameRun() {
+				switch (state) {
+					case STATE.BEGIN:
+						exe_begin();
+						break;
+					case STATE.RUN:
+						if (hero == null) {
+							hero = new Hero(box, Imgs.hero);
+						}
+						musicRun.play()
+						createAndCheck();
+						break;
+					case STATE.STOP:
+						exe_stop();
+						break;
+					default:
+						break;
+				}
+			}
+			document.addEventListener('keydown', function(e) {
+				if (e.keyCode === 32) {
+					console.log("按下了空格键");
+					switch (state) {
+						case STATE.BEGIN:
+							score =0
+							score_show.innerText = '分数：'+score
+							console.log("点击了。。。。。。。。。。。");
+							begin.style.display = "None"
+							state = STATE.RUN
+							gameRun()
+							break;
+						case STATE.RUN:
+							break;
+						default:
+							break;
+					}
+				}
+			})
+
+			function exe_begin() {
+				begin.style.display = ""
+				musicRun.pause()
+				musicFire.pause()
+				begin.onclick = function() {
+					score =0
+					score_show.innerText = '分数：'+score
+					console.log("点击了。。。。。。。。。。。");
+					begin.style.display = "None"
+					state = STATE.RUN
+					gameRun()
+				}
+			}
+			function exe_stop(){
+				
+			}
+			//程序结束：
+			function stopInterval() {
+				clearInterval(timers.planeCreate)
+				clearInterval(timers.fireCreate)
+				clearInterval(timers.checkCrash)
+			}
+			//判断碰撞：定时器，每个xx毫秒判断子弹和飞机的碰撞：
+			function checkCrash() {
+				// console.log("子弹数------------------" + arrs.fires.length);
+				// console.log("飞机数---" + arrs.planes.length);
+				let fires = arrs.fires;
+				let plans = arrs.planes;
+				// 判断碰撞
+				for (var i = 0; i < plans.length; i++) {
+					for (var j = 0; j < fires.length; j++) {
+						// 子弹的左边坐标
+						let left = parseInt(fires[j].imgNode.style.left)
+						// console.log("子弹的左边 --- " + left);
+						let right = parseInt(fires[j].imgNode.style.left) + parseInt(fire_config.w / 2)
+						//子弹的顶部坐标：
+						let top = parseInt(fires[j].imgNode.style.top)
+						// console.log("子弹的顶部 --- " + top);
+						//飞机的左边：
+						if (plans[i] == null) { //判断飞机是否还在
+							return
+						}
+						let p_left = parseInt(plans[i].imgNode.style.left)
+						let p_right = parseInt(plans[i].imgNode.style.left) + parseInt(plane_config.w)
+						//子弹的顶部坐标：
+						let p_top = parseInt(plans[i].imgNode.style.top)
+						let p_bottom = parseInt(plans[i].imgNode.style.top) + parseInt(plane_config.h)
+						// console.log(p_top+" ------  "+p_bottom);
+						//子弹的左边>飞机的左边，子弹的右边小于飞机的右边 
+						//子弹的上面>飞机的下面，子弹的上面< 飞机的上面
+						if (left > p_left && right < p_right && top < p_bottom && top > p_top) {
+							fires[j].boom();
+							plans[i].boom();
+							score += 1;
+							score_show.innerText = "得分：" + score;
+							musicFire.play()
+						}
+						if (hero == null) {
+							return
+						}
+						//判断飞机和英雄机的对撞：
+						let h_left = parseInt(hero.imgNode.style.left);
+						let h_right = parseInt(hero.imgNode.style.left)+parseInt(hero_config.w);
+						let h_top = parseInt(hero.imgNode.style.top);
+
+						if (h_left < p_right&&h_right>p_left && h_top < p_bottom && h_top > p_top) {
+							hero.boom();
+							hero = null;
+							plans[i].boom();
+							stopInterval();
+							state = STATE.BEGIN
+							gameRun()
+						}
+					}
+				}
+			}
+
+			function createAndCheck() {
+				// 每1秒创建一个飞机!
+				timers.planeCreate = setInterval(() => {
+					let plane = new Plane(box, Imgs.plane, 3);
+				}, 500)
+				// 每400毫秒创建一个子弹!
+				timers.fireCreate = setInterval(() => {
+					new Fire(box, Imgs.fire, 30);
+
+				}, 400);
+				timers.checkCrash = setInterval(checkCrash, 20)
+			}
+			gameRun()
+		</script>
+	</body>
+</html>
